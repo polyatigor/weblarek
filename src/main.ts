@@ -13,6 +13,7 @@ import { Order } from './components/View/Order';
 import { Contacts } from './components/View/Contacts';
 import { Success } from './components/View/Success';
 import { Card } from './components/View/Card';
+import { IProduct } from './types/index';
 
 // Вспомогательная функция для клонирования HTML-шаблонов
 function cloneTemplate(template: HTMLTemplateElement): HTMLElement {
@@ -73,7 +74,7 @@ events.on('items:changed', () => {
 });
 
 // Открытие карточки товара (предпросмотр)
-events.on('card:select', (item: any) => {
+events.on('card:select', (item: IProduct) => {
     // Вспомогательная функция проверки: есть ли товар в корзине?
     const isItemInCart = () => cartModel.getItems().some(cartItem => cartItem.id === item.id);
 
@@ -105,8 +106,8 @@ events.on('card:select', (item: any) => {
 });
 
 // Добавление/удаление товара и обновление корзины
-events.on('product:add', (item: any) => { cartModel.addProduct(item); events.emit('basket:changed'); });
-events.on('product:delete', (item: any) => { cartModel.removeProduct(item.id); events.emit('basket:changed'); });
+events.on('product:add', (item: IProduct) => { cartModel.addProduct(item); events.emit('basket:changed'); });
+events.on('product:delete', (item: IProduct) => { cartModel.removeProduct(item.id); events.emit('basket:changed'); });
 
 events.on('basket:changed', () => {
     page.counter = cartModel.getTotalCount();
