@@ -1,58 +1,57 @@
-import { IBuyer, TPayment } from '../../types/index';
+import { IBuyer, TPayment, FormErrors } from '../../types/index'; 
 
-export class Buyer {
-    protected payment: string = '';
-    protected email: string = '';
-    protected phone: string = '';
+export class Buyer { 
+    protected payment: TPayment | null = null; 
+    protected email: string = ''; 
+    protected phone: string = ''; 
     protected address: string = '';
 
-    setField(field: keyof IBuyer, value: string): void {
-        if (field === 'payment') {
-            this.payment = value;
-        } else if (field === 'email') {
-            this.email = value;
-        } else if (field === 'phone') {
-            this.phone = value;
-        } else if (field === 'address') {
-            this.address = value;
-        }
+    setField(field: keyof IBuyer, value: string): void { 
+        if (field === 'payment') { 
+            if (value === 'card' || value === 'cash') {
+                this.payment = value; 
+            }
+        } else if (field === 'email') { 
+            this.email = value; 
+        } else if (field === 'phone') { 
+            this.phone = value; 
+        } else if (field === 'address') { 
+            this.address = value; 
+        } 
     }
 
-    getBuyerInfo(): IBuyer {
-        return {
-            payment: this.payment as TPayment,
-            email: this.email,
-            phone: this.phone,
-            address: this.address
-        };
+    getBuyerInfo(): IBuyer { 
+        return { 
+            payment: this.payment, 
+            email: this.email, 
+            phone: this.phone, 
+            address: this.address 
+        }; 
     }
 
-    clearBuyer(): void {
-        this.payment = '';
-        this.email = '';
-        this.phone = '';
-        this.address = '';
+    clearBuyer(): void { 
+        this.payment = null;
+        this.email = ''; 
+        this.phone = ''; 
+        this.address = ''; 
     }
 
-    validateAddressForm(): Partial<Record<keyof IBuyer, string>> {
-        const errors: Partial<Record<keyof IBuyer, string>> = {};
-        if (!this.address) {
-            errors.address = 'Необходимо указать адрес доставки';
-        }
+    validate(): FormErrors {
+        const errors: FormErrors = {};
+        
         if (!this.payment) {
             errors.payment = 'Выберите способ оплаты';
         }
-        return errors;
-    }
-
-    validateContactForm(): Partial<Record<keyof IBuyer, string>> {
-        const errors: Partial<Record<keyof IBuyer, string>> = {};
+        if (!this.address) {
+            errors.address = 'Укажите адрес доставки';
+        }
         if (!this.email) {
-            errors.email = 'Необходимо указать email';
+            errors.email = 'Укажите электронную почту';
         }
         if (!this.phone) {
-            errors.phone = 'Необходимо указать телефон';
+            errors.phone = 'Укажите номер телефона';
         }
+        
         return errors;
     }
 }
