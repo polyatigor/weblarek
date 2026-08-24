@@ -21,7 +21,6 @@ export class Page extends Component<IPageController> {
         this._wrapper = container.querySelector('.page__wrapper')!;
         this._basket = container.querySelector('.header__basket')!;
 
-        // Клик по иконке корзины открывает саму корзину
         this._basket.addEventListener('click', () => {
             this.events.emit('basket:open');
         });
