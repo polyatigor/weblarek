@@ -16,18 +16,18 @@ export class Cart {
     addProduct(item: IProduct): void {
         if (!this.containsProduct(item.id)) {
             this.items.push(item);
-            this.events.emit('basket:changed', this.items);
+            this.events.emit('basket:changed');
         }
     }
 
     removeProduct(id: string): void {
         this.items = this.items.filter(item => item.id !== id);
-        this.events.emit('basket:changed', this.items);
+        this.events.emit('basket:changed');
     }
 
     clearCart(): void {
         this.items = [];
-        this.events.emit('basket:changed', this.items);
+        this.events.emit('basket:changed');
     }
 
     getTotalPrice(): number {

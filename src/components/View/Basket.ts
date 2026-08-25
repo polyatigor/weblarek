@@ -26,16 +26,11 @@ export class Basket extends Component<IBasketView> {
     }
 
     set items(items: HTMLElement[]) {
-        if (items.length) {
-            this._list.replaceChildren(...items);
-            this._button.disabled = false;
-        } else {
-            const emptyText = document.createElement('p');
-            emptyText.textContent = 'Корзина пуста';
-            
-            this._list.replaceChildren(emptyText);
-            this._button.disabled = true;
-        }
+        this._list.replaceChildren(...items);
+    }
+
+    set buttonDisabled(state: boolean) {
+        this._button.disabled = state;
     }
 
     set total(total: number) {

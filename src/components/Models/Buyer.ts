@@ -60,7 +60,6 @@ export class Buyer {
             errors.phone = 'Укажите номер телефона';
         }
 
-        this.events.emit('formErrors:change', errors);
         return errors;
     }
 }

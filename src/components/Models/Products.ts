@@ -12,7 +12,7 @@ export class Products {
 
     setItems(items: IProduct[]): void {
         this.items = items;
-        this.events.emit('items:changed', this.items);
+        this.events.emit('items:changed');
     }
 
     getItems(): IProduct[] {

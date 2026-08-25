@@ -18,7 +18,7 @@ import { Success } from './components/View/Success';
 
 const events = new EventEmitter();
 const baseApi = new Api(API_URL);
-const api = new LarekAPI(CDN_URL, baseApi);
+const api = new LarekAPI(baseApi);
 
 const productsModel = new Products(events);
 const cartModel = new Cart(events);
@@ -37,6 +37,13 @@ const modal = new Modal(ensureElement<HTMLElement>('#modal-container'), events);
 const basket = new Basket(cloneTemplate(basketTemplate), events);
 const orderForm = new OrderForm(cloneTemplate(orderTemplate), events);
 const contactsForm = new ContactsForm(cloneTemplate(contactsTemplate), events);
+
+const preview = new PreviewItem(cloneTemplate(cardPreviewTemplate), {
+    onClick: () => events.emit('preview:toggle')
+});
+const success = new Success(cloneTemplate(successTemplate), {
+    onClick: () => events.emit('success:close')
+});
 
 events.on('modal:open', () => { page.locked = true; });
 events.on('modal:close', () => { page.locked = false; });
@@ -60,33 +67,31 @@ events.on('card:select', (item: any) => {
 });
 
 events.on('preview:changed', (item: any) => {
-    const card = new PreviewItem(cloneTemplate(cardPreviewTemplate), {
-        onClick: () => {
-            if (cartModel.containsProduct(item.id)) {
-                events.emit('basket:remove', item);
-            } else {
-                events.emit('basket:add', item);
-            }
-            modal.close();
-        }
-    });
-
     const isAdded = cartModel.containsProduct(item.id);
-    
     modal.render({
-        content: card.render({
+        content: preview.render({
             title: item.title,
             image: item.image,
             description: item.description,
             price: item.price,
             category: item.category,
-            buttonText: item.price === null ? 'Недоступно' : (isAdded ? 'Удалить из корзины' : 'В корзину')
+            buttonText: item.price === null ? 'Недоступно' : (isAdded ? 'Удалить из корзины' : 'В корзину'),
+            buttonDisabled: item.price === null
         })
     });
 });
 
-events.on('basket:add', (item: any) => cartModel.addProduct(item));
-events.on('basket:remove', (item: any) => cartModel.removeProduct(item.id));
+events.on('preview:toggle', () => {
+    const item = productsModel.getPreview();
+    if (item) {
+        if (cartModel.containsProduct(item.id)) {
+            cartModel.removeProduct(item.id);
+        } else {
+            cartModel.addProduct(item);
+        }
+        modal.close();
+    }
+});
 
 events.on('basket:changed', () => {
     page.counter = cartModel.getTotalCount();
@@ -94,7 +99,7 @@ events.on('basket:changed', () => {
     
     basket.items = cartModel.getItems().map((item, index) => {
         const card = new BasketItem(cloneTemplate(cardBasketTemplate), {
-            onClick: () => events.emit('basket:remove', item)
+            onClick: () => cartModel.removeProduct(item.id) 
         });
         return card.render({
             title: item.title,
@@ -102,9 +107,13 @@ events.on('basket:changed', () => {
             index: index + 1
         });
     });
+
+    basket.buttonDisabled = cartModel.getTotalCount() === 0;
 });
 
 events.on('basket:open', () => {
+    basket.buttonDisabled = cartModel.getTotalCount() === 0;
+
     modal.render({
         content: basket.render()
     });
@@ -120,25 +129,26 @@ events.on('order:open', () => {
 });
 
 events.on(/^(order\..*):change/, (data: { field: string, value: string }) => {
-    if (data.field === 'payment') {
-        orderForm.payment = data.value;
-    }
     buyerModel.setField(data.field as any, data.value);
-    buyerModel.validate();
 });
 
 events.on(/^(contacts\..*):change/, (data: { field: string, value: string }) => {
     buyerModel.setField(data.field as any, data.value);
-    buyerModel.validate();
 });
 
-events.on('formErrors:change', (errors: Partial<any>) => {
-    const { payment, address, email, phone } = errors;
-    orderForm.valid = !payment && !address;
-    orderForm.errors = Object.values({payment, address}).filter(i => !!i).join('; ');
+events.on('buyer:changed', () => {
+    const info = buyerModel.getBuyerInfo();
+    const errors = buyerModel.validate();
     
-    contactsForm.valid = !email && !phone;
-    contactsForm.errors = Object.values({email, phone}).filter(i => !!i).join('; ');
+    orderForm.payment = info.payment || '';
+    orderForm.address = info.address || '';
+    orderForm.valid = !errors.payment && !errors.address;
+    orderForm.errors = Object.values({payment: errors.payment, address: errors.address}).filter(i => !!i).join('; ');
+    
+    contactsForm.email = info.email || '';
+    contactsForm.phone = info.phone || '';
+    contactsForm.valid = !errors.email && !errors.phone;
+    contactsForm.errors = Object.values({email: errors.email, phone: errors.phone}).filter(i => !!i).join('; ');
 });
 
 events.on('order:submit', () => {
@@ -162,10 +172,6 @@ events.on('contacts:submit', () => {
             cartModel.clearCart();
             buyerModel.clearBuyer();
             
-            const success = new Success(cloneTemplate(successTemplate), {
-                onClick: () => modal.close()
-            });
-            
             modal.render({
                 content: success.render({
                     total: result.total
@@ -177,9 +183,17 @@ events.on('contacts:submit', () => {
         });
 });
 
+events.on('success:close', () => {
+    modal.close();
+});
+
 api.getProductList()
     .then(data => {
-        productsModel.setItems(data.items);
+        const itemsWithCdn = data.items.map(item => ({
+            ...item,
+            image: CDN_URL + item.image
+        }));
+        productsModel.setItems(itemsWithCdn);
     })
     .catch(err => {
         console.error('Ошибка при загрузке каталога:', err);

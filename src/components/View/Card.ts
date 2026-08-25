@@ -20,25 +20,17 @@ export interface ICard {
     description?: string;
     buttonText?: string;
     index?: number;
+    buttonDisabled?: boolean;
 }
 
 export class Card extends Component<ICard> {
     protected _title: HTMLElement;
     protected _price: HTMLElement;
 
-    constructor(container: HTMLElement, actions?: ICardActions) {
+    constructor(container: HTMLElement) {
         super(container);
         this._title = container.querySelector('.card__title') as HTMLElement;
         this._price = container.querySelector('.card__price') as HTMLElement;
-
-        if (actions?.onClick) {
-            const button = container.querySelector('.card__button') as HTMLButtonElement;
-            if (button) {
-                button.addEventListener('click', actions.onClick);
-            } else {
-                container.addEventListener('click', actions.onClick);
-            }
-        }
     }
 
     set title(value: string) {
@@ -55,13 +47,17 @@ export class CatalogItem extends Card {
     protected _category: HTMLElement;
 
     constructor(container: HTMLElement, actions?: ICardActions) {
-        super(container, actions);
+        super(container);
         this._image = container.querySelector('.card__image') as HTMLImageElement;
         this._category = container.querySelector('.card__category') as HTMLElement;
+
+        if (actions?.onClick) {
+            container.addEventListener('click', actions.onClick);
+        }
     }
 
     set image(value: string) {
-        this.setImage(this._image, value, this.title);
+        this.setImage(this._image, value);
     }
 
     set category(value: string) {
@@ -75,9 +71,15 @@ export class PreviewItem extends CatalogItem {
     protected _button: HTMLButtonElement;
 
     constructor(container: HTMLElement, actions?: ICardActions) {
-        super(container, actions);
+        super(container); 
         this._description = container.querySelector('.card__text') as HTMLElement;
         this._button = container.querySelector('.card__button') as HTMLButtonElement;
+
+        if (actions?.onClick) {
+            if (this._button) {
+                this._button.addEventListener('click', actions.onClick);
+            }
+        }
     }
 
     set description(value: string) {
@@ -90,11 +92,9 @@ export class PreviewItem extends CatalogItem {
         }
     }
 
-    set price(value: number | null) {
-        super.price = value;
-        if (value === null && this._button) {
-            this._button.disabled = true;
-            this._button.textContent = 'Недоступно';
+    set buttonDisabled(state: boolean) {
+        if (this._button) {
+            this._button.disabled = state;
         }
     }
 }
@@ -103,8 +103,9 @@ export class BasketItem extends Card {
     protected _index: HTMLElement;
 
     constructor(container: HTMLElement, actions?: ICardActions) {
-        super(container, actions);
+        super(container);
         this._index = container.querySelector('.basket__item-index') as HTMLElement;
+        
         if (actions?.onClick) {
             const deleteBtn = container.querySelector('.basket__item-delete') as HTMLButtonElement;
             if (deleteBtn) {
