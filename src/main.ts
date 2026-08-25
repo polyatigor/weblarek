@@ -3,6 +3,7 @@ import { Api } from './components/base/Api';
 import { EventEmitter } from './components/base/Events';
 import { API_URL, CDN_URL } from './utils/constants';
 import { cloneTemplate, ensureElement } from './utils/utils';
+import { IProduct, IBuyer, IOrder } from './types/index';
 
 import { LarekAPI } from './components/Models/LarekAPI';
 import { Products } from './components/Models/Products';
@@ -62,23 +63,27 @@ events.on('items:changed', () => {
     });
 });
 
-events.on('card:select', (item: any) => {
+events.on('card:select', (item: IProduct) => {
     productsModel.setPreview(item);
 });
 
-events.on('preview:changed', (item: any) => {
-    const isAdded = cartModel.containsProduct(item.id);
-    modal.render({
-        content: preview.render({
-            title: item.title,
-            image: item.image,
-            description: item.description,
-            price: item.price,
-            category: item.category,
-            buttonText: item.price === null ? 'Недоступно' : (isAdded ? 'Удалить из корзины' : 'В корзину'),
-            buttonDisabled: item.price === null
-        })
-    });
+events.on('preview:changed', () => {
+    const item = productsModel.getPreview();
+    
+    if (item) {
+        const isAdded = cartModel.containsProduct(item.id);
+        modal.render({
+            content: preview.render({
+                title: item.title,
+                image: item.image,
+                description: item.description,
+                price: item.price,
+                category: item.category,
+                buttonText: item.price === null ? 'Недоступно' : (isAdded ? 'Удалить из корзины' : 'В корзину'),
+                buttonDisabled: item.price === null
+            })
+        });
+    }
 });
 
 events.on('preview:toggle', () => {
@@ -99,7 +104,7 @@ events.on('basket:changed', () => {
     
     basket.items = cartModel.getItems().map((item, index) => {
         const card = new BasketItem(cloneTemplate(cardBasketTemplate), {
-            onClick: () => cartModel.removeProduct(item.id) 
+            onClick: () => events.emit('basket:remove', item) 
         });
         return card.render({
             title: item.title,
@@ -109,6 +114,10 @@ events.on('basket:changed', () => {
     });
 
     basket.buttonDisabled = cartModel.getTotalCount() === 0;
+});
+
+events.on('basket:remove', (item: IProduct) => {
+    cartModel.removeProduct(item.id);
 });
 
 events.on('basket:open', () => {
@@ -129,11 +138,11 @@ events.on('order:open', () => {
 });
 
 events.on(/^(order\..*):change/, (data: { field: string, value: string }) => {
-    buyerModel.setField(data.field as any, data.value);
+    buyerModel.setField(data.field as keyof IBuyer, data.value);
 });
 
 events.on(/^(contacts\..*):change/, (data: { field: string, value: string }) => {
-    buyerModel.setField(data.field as any, data.value);
+    buyerModel.setField(data.field as keyof IBuyer, data.value);
 });
 
 events.on('buyer:changed', () => {
@@ -161,13 +170,13 @@ events.on('order:submit', () => {
 });
 
 events.on('contacts:submit', () => {
-    const orderData = {
+    const orderData: IOrder = {
         ...buyerModel.getBuyerInfo(),
         items: cartModel.getItems().map(item => item.id),
         total: cartModel.getTotalPrice()
-    };
+    } as IOrder;
 
-    api.orderProducts(orderData as any)
+    api.orderProducts(orderData)
         .then((result) => {
             cartModel.clearCart();
             buyerModel.clearBuyer();
